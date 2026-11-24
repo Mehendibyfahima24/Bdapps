@@ -3,7 +3,6 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# SSC ও HSC শিক্ষার্থীদের জন্য ছোট ও কাজের টিপস
 STUDY_TIPS = {
     "ssc": [
         "SSC Tip: কঠিন অধ্যায়ের সূত্র বা সংজ্ঞা পড়ে না দেখে খাতায় ৩ বার লিখুন।",
@@ -22,25 +21,20 @@ STUDY_TIPS = {
 def home():
     return jsonify({
         "status": "ok",
-        "service": "ExamBoostPro - SSC & HSC Study Booster"
+        "service": "SscHscBoost - SSC & HSC Study Booster"
     }), 200
 
 @app.route("/ussd", methods=["POST"])
 def ussd_webhook():
-    """
-    bdapps থেকে আসা JSON/Form পেলোড রিসিভ করে পরবর্তী মেনু বা টিপস রিটার্ন করে।
-    (লাইভ bdapps পেলোডের ফিল্ড অনুযায়ী প্রয়োজনে নিচের key গুলো মিলিয়ে নিতে হবে।)
-    """
     data = request.get_json(silent=True) or request.form.to_dict() or {}
 
     address = data.get("address", "")
     session_id = data.get("sessionId", "")
     message = str(data.get("message", "")).strip()
 
-    # প্রথমবার মেনু ওপেন করলে বা খালি ইনপুট এলে মূল মেনু দেখান
     if message == "" or message.lower() in ["menu", "start", "0"]:
         reply_text = (
-            "ExamBoostPro (SSC & HSC)\n"
+            "SscHscBoost (SSC & HSC)\n"
             "1. SSC Study Booster\n"
             "2. HSC Study Booster\n"
             "3. Focus & Exam Tip\n"
@@ -74,6 +68,23 @@ def ussd_webhook():
         "address": address,
         "message": reply_text,
         "ussdOperation": operation
+    }), 200
+
+@app.route("/sms", methods=["POST", "GET"])
+def sms_webhook():
+    data = request.get_json(silent=True) or request.form.to_dict() or request.args.to_dict() or {}
+    incoming_msg = str(data.get("message", "")).strip().lower()
+
+    if "hsc" in incoming_msg:
+        tip = STUDY_TIPS["hsc"][0]
+    elif "focus" in incoming_msg:
+        tip = STUDY_TIPS["focus"][0]
+    else:
+        tip = STUDY_TIPS["ssc"][0]
+
+    return jsonify({
+        "status": "received",
+        "reply": tip
     }), 200
 
 if __name__ == "__main__":
